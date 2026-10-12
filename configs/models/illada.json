@@ -1,0 +1,10 @@
+{
+  "backend": "hf",
+  "family": "illada",
+  "model_id": "GSAI-ML/iLLaDA-8B-Instruct",
+  "revision": "main",
+  "device": "cuda:0",
+  "dtype": "bfloat16",
+  "trust_remote_code": true,
+  "local_files_only": false
+}

@@ -1,0 +1,11 @@
+{
+  "name": "smoke",
+  "dataset": {"count": 2, "seed": 123, "split": "smoke", "depth": 2},
+  "formats": ["answer_only", "with_intermediate"],
+  "layouts": ["AB_AB", "AB_BA", "BA_AB", "BA_BA"],
+  "policy": "confidence",
+  "starting_task": "A",
+  "interventions": true,
+  "bootstrap_seed": 123,
+  "bootstrap_samples": 200
+}

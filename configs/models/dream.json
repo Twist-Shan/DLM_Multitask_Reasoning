@@ -1,0 +1,10 @@
+{
+  "backend": "hf",
+  "family": "dream",
+  "model_id": "Dream-org/Dream-v0-Instruct-7B",
+  "revision": "main",
+  "device": "cuda:0",
+  "dtype": "bfloat16",
+  "trust_remote_code": true,
+  "local_files_only": false
+}

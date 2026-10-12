@@ -1,0 +1,12 @@
+{
+  "name": "pilot",
+  "dataset": {"count": 64, "seed": 123, "split": "pilot", "depth": 3},
+  "formats": ["answer_only", "with_intermediate"],
+  "layouts": ["AB_AB", "AB_BA", "BA_AB", "BA_BA"],
+  "policy": "confidence",
+  "starting_task": "A",
+  "interventions": true,
+  "bootstrap_seed": 123,
+  "bootstrap_samples": 2000
+}
+

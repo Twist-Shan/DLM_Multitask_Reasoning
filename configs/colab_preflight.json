@@ -1,0 +1,11 @@
+{
+  "name": "colab-single-digit-preflight",
+  "dataset": {"count": 2, "seed": 123, "split": "colab_digit", "depth": 2, "max_value": 9},
+  "formats": ["answer_only", "with_intermediate"],
+  "layouts": ["AB_AB", "AB_BA", "BA_AB", "BA_BA"],
+  "policy": "confidence",
+  "starting_task": "A",
+  "interventions": true,
+  "bootstrap_seed": 123,
+  "bootstrap_samples": 200
+}
