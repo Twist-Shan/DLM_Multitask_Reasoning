@@ -1,37 +1,75 @@
-# 运行指南
+# Execution workflows
 
-## 组件与 head bank 实验
+All commands below run from the repository root after editable installation. Model experiments require the [GPU environment](environment.md); audits use existing local files. Scripts do not fetch historical experimental results.
 
-使用已配置 CUDA PyTorch 的 Linux / Colab 环境，建议 A100 40GB。模型使用 bfloat16、batch size 1，固定 iLLaDA revision `5769f049224b2cff61106ebce0429ede5deeb434`，启用官方 `trust_remote_code`。
+## 1. Offline harness check
 
-```bash
-python -m pip install -e .
-python -m pip install 'transformers==4.46.2' 'tokenizers==0.20.3' 'huggingface-hub==0.36.0' 'accelerate>=0.34,<2' 'safetensors>=0.4' einops numpy matplotlib
+```sh
+python -m unittest discover -s tests -v
+python -m dlm_coupling smoke --out runs/smoke
+```
+
+The smoke command uses the legacy mock fixed-slot harness. It writes a dataset, run manifest, token records, and a local summary under `runs/smoke`. Use a fresh or empty directory. Its outputs do not represent a language model.
+
+## 2. Component and representation pipeline
+
+```sh
 python scripts/run_mechanism_pilot.py
 python scripts/analyze_mechanism_pilot.py runs/mechanism-pilot --out runs/mechanism-pilot/analysis.json
 python scripts/plot_mechanism_pilot.py runs/mechanism-pilot
+```
+
+The runner generates paired arithmetic inputs internally: seed 127 for discovery, seed 128 for independent validation. Model-generated C/U/V values precede A/B generation. It scans residual, attention, and MLP outputs at specified layers/positions, evaluates single query heads, and captures hidden states. See [the task contract](methods.md) for the exact intervention meanings.
+
+Local outputs include `manifest.json`, `results.jsonl`, and `representations.npz`. The audit recomputes arithmetic, submitted tokens, Source/Target alignment, qualification, candidate selection, and counters. The plot builder requires the resulting `analysis.json` plus state arrays; it produces component/head figures and relative-L2 distance summaries. These are generated files, not repository assets.
+
+## 3. Head-bank pipeline
+
+```sh
 python scripts/run_headbank_pilot.py
 python scripts/analyze_headbank_pilot.py runs/headbank-pilot runs/mechanism-pilot --out runs/headbank-pilot/analysis.json
 python scripts/plot_headbank_pilot.py runs/headbank-pilot
 ```
 
-运行器自行生成发现/验证输入。组件发现 seed 127，组件验证 seed 128，head bank 独立验证 seed 129。每组包含 base、C/U/V 改动和同值不同操作数控制。C/U/V 由模型生成，然后程序允许 A/B 提交。每一步只提交一个最高置信度 token。
+Run step 2 first: the bank runner reads `runs/mechanism-pilot/results.jsonl` and reconstructs its discovery states. It searches predefined layer/head groups, freezes a candidate using discovery criteria, and generates new validation inputs with seed 129. Source/Target partial-answer alignment is recomputed during sustained patching. The audit requires both runs.
 
-head bank 读取上一阶段 `runs/mechanism-pilot`。输出目录已存在时运行器拒绝覆盖；先保存已有结果，再选择新工作目录重新运行。脚本会保存模型环境、提交轨迹、Source / Target 对齐信息及离线审计所需字段。运行产生的 `runs/`、`data/`、`reports/` 均被 Git 忽略，不自动上传。
+Both runners use fixed output directories and refuse to create them if they already exist. They do not implement resume. Preserve existing files and use another clean checkout for a new run; do not delete failed traces merely to obtain a successful summary. Analysis commands can replace their explicitly specified summary file. Plot labels currently follow the supplied pilot design; changing sample sizes requires checking figure denominators as well as analysis logic.
 
-依赖安装不会替你选择合适的 CUDA PyTorch 构建；记录实际 Python、CUDA、PyTorch、模型 revision 及仓库 commit，才能区分软件环境差异。
+## 4. Earlier intermediate controls and prompt calibration
 
-## 其他入口
+These stages generate their own inputs and can be run independently of steps 2–3:
 
-- `run_shared_causal.py`：共享中间量单次干预。
-- `run_shared_followup.py`：持续干预与分支对照。
-- `run_baseline_repair.py`：提示和生成接口校准。
-- `generate_igsm_pairs.py` / `generate_igsm_explicit.py`：上游图导出与显式等式题目构造，先查看 `--help`。
-- `run_igsm_explicit.py`：显式题目的单问/联合生成，需要自行生成数据路径。
-- `run_answer_interp.py`：晚期答案 token 干预，需要先生成基础轨迹。
+```sh
+python scripts/run_shared_causal.py --out runs/shared-causal --n 6 --seed 123
+python scripts/analyze_shared_causal.py --run runs/shared-causal --out runs/shared-causal/analysis.json
+python scripts/run_shared_followup.py --out runs/shared-followup --n 10 --seed 124
+python scripts/analyze_shared_followup.py --run runs/shared-followup --out runs/shared-followup/analysis.json
+python scripts/run_baseline_repair.py
+python scripts/analyze_baseline_repair.py runs/baseline-repair --out runs/baseline-repair/analysis.json
+```
 
-配套 `analyze_*` / `audit_*` / `plot_*` 读取你自己运行得到的文件。公开仓库不提供任何历史结果文件。部分绘图脚本按当前预设样本数标轴，修改样本量时应同步核对图注和分母。
+Single/sustained controls distinguish explicit gold-intermediate conditions from permanently masked intermediate slots. Calibration compares prompt examples, canvas layouts, generated intermediates, and natural short reasoning. These interfaces have different information and generation budgets; do not combine them as one uniform accuracy benchmark.
 
-## 解释边界
+## 5. Behavioral question relationships
 
-Source 提供 patching 状态，Target 接受该状态；Source 的部分 A/B token 在每步与 Target 对齐。持续交换成功仅回答所选干预是否足以改变输出，不直接证明组件必要性、最小性或自然计算复用。反事实指标必须扣除基线已有命中，并分别报告整体样本与基础正确子集。
+First obtain the upstream iGSM generator separately. The export tools require its unmodified revision `a1ed1d04600add811beb08b58d9912ed30999642`. The explicit-equation exporter expects the checkout at `data/upstream/igsm`; the older pair exporter also accepts `--upstream`. Install that project's own dependencies before export.
+
+```sh
+python scripts/generate_igsm_explicit.py --split screen --seed 123 --per-relation 10 --out data/generated/explicit-screen.jsonl
+python scripts/run_igsm_explicit.py --model illada --data data/generated/explicit-screen.jsonl --out runs/behavior-illada --single-budget 1024 --tokens-per-step 1 --prompt-version v2 --sampler blockwise --block-size 32 --seed 123
+python scripts/run_igsm_explicit.py --model dream --data data/generated/explicit-screen.jsonl --out runs/behavior-dream --single-budget 1024 --tokens-per-step 1 --prompt-version v2 --sampler blockwise --block-size 32 --seed 123
+```
+
+This samples explicit equations before model evaluation. For disjoint follow-up sets, supply prior data files through the generator's repeatable `--exclude` argument and use a new prespecified seed. Explicit-equation tasks use ordinary integers; the older natural-text pipeline has a distinct modular-arithmetic contract.
+
+Late answer-token intervention consumes a completed behavioral run:
+
+```sh
+python scripts/run_answer_interp.py --run runs/behavior-illada --out runs/behavior-illada-interventions --per-relation 3
+```
+
+It selects eligible same-block answer spans, forks the recorded state, checks exact unmodified continuation, changes a visible answer numeral, and completes generation. It does not locate an internal shared-computation circuit. Screen-wide collectors expect specific combined-run layouts; inspect `analyze_screen30.py` and its `--help` before combining independently named run directories.
+
+## Retaining a local experiment
+
+Save the actual repository commit, model revision, environment, run manifest, task inputs, output traces, and audit files. The current repository does not include a full environment lock or historical result packages. Discovery trials and repeated conditions on a base case are not independent samples. All generated directories are ignored by Git; no script uploads them automatically.

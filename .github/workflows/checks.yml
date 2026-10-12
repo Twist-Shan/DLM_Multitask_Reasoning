@@ -13,3 +13,4 @@ jobs:
       - run: python -m pip install -e .
       - run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
       - run: python -m unittest discover -s tests -v
+      - run: python -m dlm_coupling smoke --out runs/ci-smoke
