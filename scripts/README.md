@@ -36,3 +36,7 @@ The no-argument runners start inference immediately. They do not implement `--he
 | Screen-level analysis and plots | `analyze_screen30.py`, `plot_screen30.py` |
 
 The screen-level utilities expect the collected-run directory layout described in their `--artifacts` argument handling. They are not interchangeable with component/head-bank analysis. All consume your own generated inputs or outputs; no historical measurements are bundled.
+
+## Free-generation workflow
+
+See [protocol and commands](../docs/free_generation.md) for generation, continuation, Source/Target patching and commitment audits. The clean Colab launcher is `notebooks/Run_Free_Reasoning.ipynb`. Historical results remain private.

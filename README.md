@@ -141,3 +141,12 @@ CI runs offline unit tests using CPU PyTorch. Tests cover arithmetic invariants,
 Model adapters use [iLLaDA](https://huggingface.co/GSAI-ML/iLLaDA-8B-Instruct) and [Dream](https://huggingface.co/Dream-org/Dream-v0-Instruct-7B); checkpoint identifiers are listed in [environment setup](docs/environment.md). The iGSM export tools require a separately obtained upstream generator at the revision checked by the code. Adapted explicit-equation tasks are not original natural-language benchmark scores.
 
 No project-wide software license has been selected. Public visibility alone does not grant a software license; model, upstream-generator, and dependency use remains subject to their respective terms.
+
+
+### Free generation and natural-span patching
+
+A second interface lets the model write its own calculations and final A/B answers without predefined C/U/V slots or supplied intermediate values. The fixed-slot experiments remain available for controlled comparisons.
+
+[Run in Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Free_Reasoning.ipynb) · [Protocol and commands](docs/free_generation.md)
+
+Replay the exact masked state before a natural reference and patch residual states from **Source** into **Target**. Evaluate local predictions, actual token commitments, final answers, and calculation consistency separately. This repository includes code and a clean launcher only; historical outputs and empirical reports remain private.

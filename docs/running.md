@@ -73,3 +73,7 @@ It selects eligible same-block answer spans, forks the recorded state, checks ex
 ## Retaining a local experiment
 
 Save the actual repository commit, model revision, environment, run manifest, task inputs, output traces, and audit files. The current repository does not include a full environment lock or historical result packages. Discovery trials and repeated conditions on a base case are not independent samples. All generated directories are ignored by Git; no script uploads them automatically.
+
+## Free-generation workflow
+
+See [protocol and commands](free_generation.md) for generation, continuation, Source/Target patching and commitment audits. The clean Colab launcher is `notebooks/Run_Free_Reasoning.ipynb`. Historical results remain private.
