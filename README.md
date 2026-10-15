@@ -1,24 +1,26 @@
 # DLM Multitask Reasoning
 
-Controlled experiments on how diffusion language models answer related questions, use intermediate states, and transmit information through attention heads.
+Controlled experiments on how task dependencies change information flow between uncommitted answer regions in diffusion language models.
 
 The code covers three task relationships—**independent**, **shared intermediate**, and **upstream–downstream**—with iLLaDA and Dream adapters, behavioral evaluation, activation patching, hidden-state measurements, and multi-layer head-bank interventions. The mechanistic pipeline currently uses iLLaDA; Dream is supported by the behavioral runners.
 
-**Start here:** [Quick start](#quick-start--no-model-or-gpu) · [Execution workflows](docs/running.md) · [Methods and task contract](docs/methods.md) · [Script index](scripts/README.md) · [Validation](docs/validation.md)
+**Start here:** [Answer-only precommit workflow](docs/precommit.md) · [Quick start](#quick-start--no-model-or-gpu) · [Other workflows](docs/running.md) · [Script index](scripts/README.md) · [Validation](docs/validation.md)
 
 This is a **code-only research repository**. Model-run records, empirical results, research reports, figures, activation arrays, and pretrained weights are maintained separately. The examples below define tasks and expected arithmetic; they are not model results.
 
 ## Research problem
 
-When two answers depend on the same quantity, does a model use an intermediate state that influences both outputs? Which positions, layers, and attention-head groups can transmit that information, and how selective is the effect?
+When a DLM answers several questions together, how do dependencies between the questions change internal sharing, routing, and interference? The current controlled interface asks whether one still-masked answer region can affect another before any answer token is committed. Representation, path, and commitment questions are distinguished from visible-token reuse.
 
 | Relationship | Illustrative task | Dependency |
 |---|---|---|
-| Independent | `A=3+4; B=5*2` | The answers have disjoint computational dependencies. |
-| Shared intermediate | `C=3+4; A=C+2; B=2*C+1` | Both answers depend on C, but neither answer depends on the other. |
-| Upstream–downstream | `A=3+4; B=2*A+1` | A is an input to B. |
+| Independent | `A=C+U; B=D+V` | The answers have disjoint relevant inputs. |
+| Shared intermediate | `A=C+U; B=C+V` | Both depend on C; neither answer depends on the other. |
+| Upstream–downstream | `A=C+U; B=A+V` | The value requested by A is an input to B. |
 
-Behavioral experiments compare separate A/B calls with joint AB/BA calls over the same facts. The controlled mechanistic task adds branch-specific intermediates:
+Here `C=x+y`, `D=w+z`, `U=u+r`, and `V=v+s`. Behavioral experiments compare separate A/B calls with joint AB/BA calls over the same facts. The answer-only v2 family uses addition throughout and supplies no correct intermediate values. For example, increasing U by one changes A in every relationship, but changes B only in downstream.
+
+Earlier generated-intermediate and free-generation interfaces retain their original multiplicative task:
 
 ```text
 C = x + y       U = u + r       V = v + s
@@ -27,7 +29,7 @@ A = C + U                      B = 2*C + V
 
 A change `C → C+1` should change `(A,B)` by `(1,2)`; `U → U+1` should change only A; `V → V+1` should change only B. These arithmetic expectations make it possible to distinguish a task-consistent counterfactual from an arbitrary answer change.
 
-The generator defines sharing in the **task graph**. That alone does not establish internal computation reuse. The fixed-slot pipeline also schedules intermediate generation before answers; it does not measure autonomous planning.
+The generator defines sharing in the **task graph**, not the model's internal algorithm. Earlier fixed-intermediate runs schedule C/U/V before A/B; answer-only precommit runs instead begin with every answer digit masked. These interfaces have different information and generation budgets and should not be pooled.
 
 ## Repository structure
 
@@ -38,6 +40,7 @@ DLM_Multitask_Reasoning/
 ├── requirements/                   Model and figure dependencies
 ├── docs/
 │   ├── running.md                  Ordered workflows and input/output contracts
+│   ├── precommit.md                Answer-only task, controls, A100 and audit commands
 │   ├── methods.md                  Task, prompts, patching, metrics, limitations
 │   ├── environment.md              CPU/GPU setup and pinned model revisions
 │   └── validation.md               Software checks and their scope
@@ -50,6 +53,7 @@ DLM_Multitask_Reasoning/
 │   ├── text_generation.py          Full-sequence and blockwise generation
 │   ├── shared_causal.py            Single-forward residual patching
 │   ├── shared_followup.py          Sustained patching and branch controls
+│   ├── precommit*.py               Versioned answer-only canvases and interventions
 │   ├── mechanism_pilot.py          Component/head scans and state capture
 │   └── headbank_pilot.py           Multi-layer query-head output patching
 └── tests/                          Offline mechanical and synthetic-tensor tests
@@ -73,11 +77,25 @@ python -m unittest discover -s tests -v
 python -m dlm_coupling smoke --out runs/smoke
 ```
 
-The core package uses the standard library. Three tests require optional PyTorch; without it, they are skipped. To run the complete CPU suite, install the appropriate CPU build as described in [environment setup](docs/environment.md).
+The core package uses the standard library. Synthetic-tensor hook tests require optional PyTorch and are skipped without it. To run the complete CPU suite, install the appropriate CPU build as described in [environment setup](docs/environment.md).
 
 The smoke command generates synthetic inputs, runs the **mock backend**, and writes local traces and a summary. It validates plumbing rather than pretrained-model reasoning. Use a new or empty output path; rerunning into a nonempty directory is rejected. Outputs remain Git-ignored.
 
-## GPU experiments
+## Answer-only precommit experiments
+
+[Run on Colab A100](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v22.ipynb) · [Task, commands, and audit contract](docs/precommit.md)
+
+Start with CPU-only preparation:
+
+```sh
+python scripts/run_precommit_v22.py --model illada --seed 123 --prepare-only --out runs/prepare-v22
+```
+
+The v2.2 workflow includes requested wording × physical slots, compensated Source/Target changes, independent-relation drift controls, late-layer scans, sustained replacement across layers, and resampling. It saves probabilities and exact position maps for independent analysis. The carry diagnostic computes a tens-only effect from saved probabilities; no new inference is needed. Mediation, subspace patching, and B-first persistence are subsequent experiments, not implemented options of this runner.
+
+Use the pinned dependencies in `requirements/precommit.txt` with a CUDA-enabled PyTorch installation. The clean notebook records the chosen Git revision and packages the current code with file hashes. Output directories must be new; historical result archives are not included.
+
+## Earlier generated-intermediate experiments
 
 [Open the code-only Colab notebook](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Mechanism_Headbank.ipynb)
 
@@ -105,6 +123,8 @@ These two runners generate their own task inputs. They require new output direct
 
 | Study | Entry point | Input / role |
 |---|---|---|
+| Answer-only precommit controls | `run_precommit_v22.py` | Addition tasks; iLLaDA t=0 intervention grid and two-model behavior |
+| Saved-probability carry diagnostic | `audit_precommit_v22_carry.py` | Your own context and patch JSONL; no model inference |
 | Behavioral task relationships | `run_igsm_explicit.py` | Generated explicit-equation pairs; iLLaDA or Dream; separate and joint questions |
 | Late answer-token effects | `run_answer_interp.py` | A completed behavioral run with recorded token trajectories |
 | Single versus sustained intermediate patching | `run_shared_causal.py`, `run_shared_followup.py` | Generated arithmetic cases; explicit or masked intermediate slots |
@@ -112,11 +132,11 @@ These two runners generate their own task inputs. They require new output direct
 | Components and representations | `run_mechanism_pilot.py` | Residual / attention / MLP positions, single query heads, state capture |
 | Multi-layer head banks | `run_headbank_pilot.py` | Component discovery states plus independently generated validation cases |
 
-The mechanism defaults use seed 127 for discovery, 128 for component validation, and 129 for head-bank validation. Earlier stages use 123–126. Seeds are explicit and unrelated to dates. Conditions and repeated interventions on the same base case are not independent samples.
+The answer-only family uses master seed 123 with versioned dataset streams. Earlier component/head-bank defaults use 127/128/129. Seeds are explicit and unrelated to dates. Conditions and repeated interventions on the same base case are not independent samples.
 
 ## Patching and measurement
 
-**Source** supplies activations; **Target** receives them. Internal legacy variable names are retained for compatibility. Single patching acts on one forward; sustained patching acts on every answer-generation forward, recomputing Source states with its partial A/B tokens aligned to Target.
+**Source** supplies activations; **Target** receives them. Internal legacy variable names are retained for compatibility. v2.2 single and sustained-layer patches act within one forward; sustained means replacing each chosen layer from that layer's clean Source state. In the earlier generation workflow, sustained patching instead acts across answer-generation forwards, with Source partial tokens aligned to Target. Always state which intervention is meant.
 
 A head bank is a set of `(layer, query-head)` pairs. The intervention replaces selected head outputs at the input to `o_proj`, at specified answer positions; it does not replace attention probabilities. A bank with eight layers and sixteen heads per layer contains 128 layer–head units.
 

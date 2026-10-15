@@ -1,0 +1,8 @@
+# Install a CUDA-enabled PyTorch separately; Colab already provides it.
+transformers==4.46.2
+tokenizers==0.20.3
+huggingface-hub==0.36.0
+jinja2>=3.1,<4
+accelerate>=0.34,<2
+safetensors>=0.4
+einops

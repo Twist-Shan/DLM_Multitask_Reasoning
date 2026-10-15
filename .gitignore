@@ -8,6 +8,9 @@ dist/
 data/
 runs/
 reports/
+Proposal/
+*.zip
+.ipynb_checkpoints/
 configs/local/
 .env
 .env.*

@@ -2,7 +2,24 @@
 
 Run scripts from the repository root after `python -m pip install -e .`. This directory retains flat paths because runners and analysis scripts import one another. Grouping below describes execution dependencies without changing those imports.
 
-## Current mechanism workflow
+## Answer-only precommit workflow
+
+See [task and data contracts](../docs/precommit.md). All versioned runners have `--help`; `--prepare-only` on v2.2 requires no model.
+
+| Stage | Entry point | Input / output |
+|---|---|---|
+| v1/v2 calibration | `run_precommit.py`, `run_precommit_v2.py` | Internally generated tasks; distinct task/ending contracts |
+| Wording/slot factorial and initial patching | `run_precommit_v21.py` | Fixed all-mask answer canvas |
+| Robustness grid | `run_precommit_v22.py` | Compensated Sources, layers, independent drift, resampling |
+| Current-code package | `package_precommit_code.py --out FILE.zip` | Allowlisted code/tests/dependencies with hashes |
+| Bounded A100 suite | `colab_precommit_v22_suite.py` | Colab-specific paths; saves complete or partial archive |
+| Full audit | `analyze_precommit_v22.py RUNS --out FILE` | Complete two-model supervisor layout and code ZIP |
+| Candidate diagnostic | `audit_precommit_v22_candidates.py RUNS --out FILE` | iLLaDA saved probabilities; candidate versus Target changes |
+| Carry/borrow diagnostic | `audit_precommit_v22_carry.py RUNS --out FILE` | iLLaDA saved probabilities; tens-only effect, split summaries |
+
+Mediation, projected-state interventions, and B-first repeated-forward patching are not implemented in v2.2. Sustained here means multiple layer outputs inside one forward; it is distinct from sustained decoding interventions below.
+
+## Earlier generated-intermediate mechanism workflow
 
 | Stage | Script | Input | Output |
 |---|---|---|---|

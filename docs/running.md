@@ -2,6 +2,8 @@
 
 All commands below run from the repository root after editable installation. Model experiments require the [GPU environment](environment.md); audits use existing local files. Scripts do not fetch historical experimental results.
 
+The current answer-only workflow is documented in [precommit experiments](precommit.md): pure-addition task graphs, native ending, a wording/slot factorial, Source/Target controls at t=0, and saved-probability diagnostics. Its clean A100 entry point is `notebooks/Run_Precommit_v22.ipynb`. The workflows below retain the earlier explicit-intermediate and free-generation contracts.
+
 ## 1. Offline harness check
 
 ```sh
