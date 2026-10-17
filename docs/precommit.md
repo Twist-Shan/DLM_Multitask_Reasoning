@@ -89,6 +89,34 @@ python scripts/analyze_precommit_v25.py runs/illada-v25 --out runs/v25-analysis.
 
 [Open the clean v2.5 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v25.ipynb). It preserves the executed source archive, dependency versions, token maps used by the metric, raw outputs, and partial outputs on failure. The analyzer validates arithmetic, masks, compensation, direct-readout exclusion, probability replay, null controls, fixed commitment counts, and paired group-level contrasts. It reports EOS against both equal-length masks and zero extra positions, so recovery from masks is not confused with a benefit of adding space. Both the original-task and redundancy results are exploratory reuses of calibration data; the reserved confirmation set is not evaluated.
 
+## v2.6 ARB routing and directed attention
+
+The task generator reuses the same original calibration questions and seed 123. In the redundancy extension, Target A=R, with independent numeric definitions; B is defined as A+V or R+V in separate prompts. ARB is paired with RAB, keeping B's position and sequence length fixed while swapping the two parent slots. The v2.5 prompt remains unchanged: definitions A,R,B and requested outputs A,B,R. Consequently, this is not a fully counterbalanced test of wording or definition order.
+
+At t=0 all answer digits remain masked. Source changes A or R by ±1. Controls include operand changes preserving the sum, a compensated Source holding B fixed, B-only changes, equal-width unused positions, self, and a final-layer cross-position null. Single-layer 30/31/32 and sustained-layer 24–31 interventions use each layer's corresponding Source state. The primary contrast holds the patched site and layout fixed: `(change−same | B depends on site) − (change−same | B depends on other site)`. Near/far comparisons then average matched names and dependency roles within each question. This runner measures t=0 patch effects and unpatched confidence/B-first baselines; it does not run patched rollouts.
+
+The attention experiment retains the original downstream AB/BA questions. Only 0/2/32 masks or 32 EOS tail positions vary, immediately before the native ending. Extra positions stay fixed while four answer digits are committed. Information direction is **key/value sender → query receiver**. All heads are blocked by additive −∞ before softmax; the remaining keys renormalize.
+
+| Mode | Blocked edges / layers |
+|---|---|
+| `native` | Original full attention, no added bias |
+| `sham` | All-zero bias in all layers; controls the attention interface/numerics |
+| `tail_to_original` | All original queries stop reading tail keys; all 32 layers |
+| `tail_to_answers` | Only A/B digit queries stop reading tail keys; all 32 layers |
+| `original_to_tail` | Tail queries stop reading original keys; a direction control, not a zero-effect null |
+| `tail_to_original_early` | Original queries stop reading tail keys in layers 1–16 |
+| `tail_to_original_late` | Same edge set in layers 17–32 |
+
+All seven modes run with 32 masks and 32 EOS; 2 masks use native/sham/full isolation, while zero extra tokens use native/sham. Non-native conditions keep the official SDPA implementation and pass a bias in every layer; layers outside a selected window receive zero bias. Compare active blocks to sham and report sham against native separately. Full isolation must make equal-length mask/EOS fillers indistinguishable at the original answers, but does not remove tail length or restore the original ending position. Recovery after blocking cannot establish a benefit of added space or a specific attention-dilution mechanism.
+
+```sh
+python scripts/run_precommit_v26.py --prepare-only --seed 123 --out runs/prepare-v26
+python scripts/run_precommit_v26.py --seed 123 --out runs/illada-v26
+python scripts/analyze_precommit_v26.py runs/illada-v26 --out runs/v26-analysis.json
+```
+
+Optionally pass `--prior runs/illada-v25` to audit native behavior against your own earlier run. The analyzer verifies the complete condition grid, exact arithmetic, masks, patch/probability replay, nulls, directional hooks, frozen tails, four/six commitment budgets, and full-isolation filler invariance. Confidence intervals bootstrap original question groups 4000 times with seed 123. Repeated signs, sites, layouts, and policies do not enlarge the independent sample count. The [clean A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v26.ipynb) saves provenance and partial outputs before the runtime is released. All results remain private and Git-ignored.
+
 ## Offline preparation
 
 Python 3.10+; install the package from the repository root. The following command generates and audits the task families and intervention specification without loading a tokenizer or model:

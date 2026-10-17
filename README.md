@@ -6,7 +6,7 @@ The code covers three task relationships—**independent**, **shared intermediat
 
 **Start here:** [Answer-only precommit workflow](docs/precommit.md) · [Quick start](#quick-start--no-model-or-gpu) · [Other workflows](docs/running.md) · [Script index](scripts/README.md) · [Validation](docs/validation.md)
 
-The v2.5 workflow returns to the original v2 questions: it changes answer order and tail space while preserving the prompt, then tests a separately defined equal-value R in a distinct minimal extension. [Run v2.5 on Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v25.ipynb); see the [input and analysis contracts](docs/precommit.md#v25-original-task-controls). The v2.4 task and runner remain available as a separate interface.
+The v2.6 workflow adds ARB/RAB layouts with separately intervenable A/R definitions, and directed attention blocking for frozen extra tail positions. [Run v2.6 on Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v26.ipynb); see the [input, control, and analysis contracts](docs/precommit.md#v26-arb-routing-and-directed-attention). Earlier versioned runners remain available.
 
 This is a **code-only research repository**. Model-run records, empirical results, research reports, figures, activation arrays, and pretrained weights are maintained separately. The examples below define tasks and expected arithmetic; they are not model results.
 

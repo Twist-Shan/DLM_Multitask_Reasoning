@@ -64,3 +64,5 @@ The screen-level utilities expect the collected-run directory layout described i
 ## Free-generation workflow
 
 See [protocol and commands](../docs/free_generation.md) for generation, continuation, Source/Target patching and commitment audits. The clean Colab launcher is `notebooks/Run_Free_Reasoning.ipynb`. Historical results remain private.
+
+The v2.6 extension uses `run_precommit_v26.py`, `colab_precommit_v26_suite.py`, and `analyze_precommit_v26.py` for ARB/RAB routing controls and directed tail attention ablation. See [the experiment contract](../docs/precommit.md#v26-arb-routing-and-directed-attention).
