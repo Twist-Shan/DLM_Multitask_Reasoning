@@ -89,6 +89,21 @@ def analyze(folder):
                             raise ValueError('Space moved answers or prompt')
                         vals.append((case,int(correct(a,event))-int(correct(base,event))))
                     result['space_gain_from_original']['/'.join((layout,quantity,policy,event))]=estimate(vals)
+    result['space_filler_contrasts']={}
+    for layout in ('AB','BA'):
+        for size in (2,8,32):
+            for policy in ('confidence','B_first'):
+                for event in ('t0','final'):
+                    for reference in ('matched_mask','zero_extra'):
+                        vals=[]
+                        for case in groups:
+                            a=core[case,'downstream',layout,f'eos_{size}',policy]
+                            q=f'mask_{size}' if reference=='matched_mask' else 'mask_0'
+                            b=core[case,'downstream',layout,q,policy]
+                            if reference=='matched_mask' and len(a['canvas']['ids'])!=len(b['canvas']['ids']):
+                                raise ValueError('EOS/mask length mismatch')
+                            vals.append((case,int(correct(a,event))-int(correct(b,event))))
+                        result['space_filler_contrasts']['/'.join((layout,str(size),policy,event,reference))]=estimate(vals)
     result['alias_baseline_contrasts']={}
     for parent in ('A','R'):
         for policy in ('confidence','B_first'):

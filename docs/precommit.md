@@ -87,7 +87,7 @@ python scripts/run_precommit_v25.py --seed 123 --out runs/illada-v25
 python scripts/analyze_precommit_v25.py runs/illada-v25 --out runs/v25-analysis.json
 ```
 
-[Open the clean v2.5 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v25.ipynb). It preserves the executed source archive, dependency versions, token maps used by the metric, raw outputs, and partial outputs on failure. The analyzer validates arithmetic, masks, compensation, direct-readout exclusion, probability replay, null controls, fixed commitment counts, and paired group-level contrasts. Both the original-task and redundancy results are exploratory reuses of calibration data; the reserved confirmation set is not evaluated.
+[Open the clean v2.5 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v25.ipynb). It preserves the executed source archive, dependency versions, token maps used by the metric, raw outputs, and partial outputs on failure. The analyzer validates arithmetic, masks, compensation, direct-readout exclusion, probability replay, null controls, fixed commitment counts, and paired group-level contrasts. It reports EOS against both equal-length masks and zero extra positions, so recovery from masks is not confused with a benefit of adding space. Both the original-task and redundancy results are exploratory reuses of calibration data; the reserved confirmation set is not evaluated.
 
 ## Offline preparation
 
