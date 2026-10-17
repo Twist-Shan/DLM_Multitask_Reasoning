@@ -72,7 +72,7 @@ The core experiment reuses the exact v2 calibration facts and IDs, arithmetic de
 
 The two-answer core changes one factor at a time:
 
-- AB versus BA canvas, with Requested outputs always A,B. Both confidence and B-first commitment policies are measured. AB/BA changes B's absolute position, so the raw order difference is not a position-free effect.
+- AB versus BA canvas, with Requested outputs always A,B. Both confidence and B-first commitment policies are measured. B-first orders answer fields, while the two B digits still compete by their current confidence; it does not freeze tens-versus-ones order. AB/BA changes B's absolute position, so the raw order difference is not a position-free effect.
 - On downstream questions, 0/2/8/32 extra masks or 2/8/32 EOS tokens are inserted immediately before the native ending. Question and A/B positions stay fixed. All variants commit four answer tokens; extra positions stay fixed. Equal forward count is not equal FLOPs.
 - A-region Source/Target patching uses downstream and independent controls, same-value operands, B-compensated Sources, unused sites, self, and the final-layer null. B-first rollouts compare a first-forward intervention with repeated interventions until B completes.
 
