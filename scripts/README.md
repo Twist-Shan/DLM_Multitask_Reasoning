@@ -19,6 +19,9 @@ See [task and data contracts](../docs/precommit.md). All versioned runners have 
 | Dependency / position / space exploration | `run_precommit_v24.py --out RUN` | Independent A/C parents, fixed B position, B-first interventions, space sweep |
 | Bounded v2.4 A100 suite | `colab_precommit_v24_suite.py` | iLLaDA; private archive even after failure |
 | v2.4 audit | `analyze_precommit_v24.py RUN --out FILE` | One completed model folder; probability replay and group-paired contrasts |
+| Original-task order, space, redundancy | `run_precommit_v25.py --out RUN` | Exact v2 core prompts; R extension separately recorded |
+| Bounded v2.5 A100 suite | `colab_precommit_v25_suite.py` | iLLaDA; complete or partial private archive |
+| v2.5 audit | `analyze_precommit_v25.py RUN --out FILE` | Core and redundancy controls, paired contrasts, probability replay |
 | v2.4 figures | `plot_precommit_v24.py SUMMARY --out DIR` | Audited summary JSON; dependency, persistence, and space plots |
 
 Mediation, projected-state interventions, and B-first repeated-forward patching are not implemented in v2.2. Sustained here means multiple layer outputs inside one forward; it is distinct from sustained decoding interventions below.

@@ -66,6 +66,29 @@ The first command needs no model dependencies; the second loads the real tokeniz
 
 [Open the clean v2.4 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v24.ipynb). Its supervisor expects a newly packaged code ZIP at `/content/precommit-v24-code.zip`, runs iLLaDA with a 5400-second budget, and preserves partial records on failure. Download and verify your private archive before releasing the runtime. Prompt-region mediation and subspace patching remain separate, unimplemented plans.
 
+## v2.5 original-task controls
+
+The core experiment reuses the exact v2 calibration facts and IDs, arithmetic definitions, numeric prompt, semicolon scaffold, and native ending. Before inference it checks token-for-token equality with the original AB canvas with two unused masks. The three relationships retain their original meanings; C still denotes x+y.
+
+The two-answer core changes one factor at a time:
+
+- AB versus BA canvas, with Requested outputs always A,B. Both confidence and B-first commitment policies are measured. AB/BA changes B's absolute position, so the raw order difference is not a position-free effect.
+- On downstream questions, 0/2/8/32 extra masks or 2/8/32 EOS tokens are inserted immediately before the native ending. Question and A/B positions stay fixed. All variants commit four answer tokens; extra positions stay fixed. Equal forward count is not equal FLOPs.
+- A-region Source/Target patching uses downstream and independent controls, same-value operands, B-compensated Sources, unused sites, self, and the final-layer null. B-first rollouts compare a first-forward intervention with repeated interventions until B completes.
+
+The redundancy experiment is recorded separately. R repeats A's numeric expression in Target, but is not defined as R=A; Source can change either numeric definition independently. B is defined as either A+V or R+V. It first evaluates an added R definition with only AB output, then ABR and RBA output. The latter pair holds B's absolute position and total length fixed. Adding R is a task extension, not a replay of the original prompt. Baseline A=R does not imply shared representations, and a result here does not establish behavior for unequal candidate values.
+
+The primary redundancy contrast is related (change−same) minus unrelated (change−same), grouped by the underlying original question. The original-task contrast is downstream (change−same) minus independent (change−same). The metric is the mean per-digit log-ratio shift for B+sign against Target B. A diagnostic off-graph candidate is not called the correct Source answer. All layers and controls are fixed in `precommit_v25.specification()`. No cases are filtered by accuracy.
+
+```sh
+python scripts/run_precommit_v25.py --prepare-only --seed 123 --out runs/prepare-v25
+python scripts/run_precommit_v25.py --audit-only --seed 123 --out runs/audit-v25
+python scripts/run_precommit_v25.py --seed 123 --out runs/illada-v25
+python scripts/analyze_precommit_v25.py runs/illada-v25 --out runs/v25-analysis.json
+```
+
+[Open the clean v2.5 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v25.ipynb). It preserves the executed source archive, dependency versions, token maps used by the metric, raw outputs, and partial outputs on failure. The analyzer validates arithmetic, masks, compensation, direct-readout exclusion, probability replay, null controls, fixed commitment counts, and paired group-level contrasts. Both the original-task and redundancy results are exploratory reuses of calibration data; the reserved confirmation set is not evaluated.
+
 ## Offline preparation
 
 Python 3.10+; install the package from the repository root. The following command generates and audits the task families and intervention specification without loading a tokenizer or model:

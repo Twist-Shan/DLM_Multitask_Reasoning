@@ -17,6 +17,7 @@ SCRIPTS = (
     "audit_precommit_v22_candidates.py", "audit_precommit_v22_carry.py",
     "colab_precommit_v22_suite.py", "package_precommit_code.py",
     "run_precommit_v24.py", "analyze_precommit_v24.py", "colab_precommit_v24_suite.py",
+    "run_precommit_v25.py", "analyze_precommit_v25.py", "colab_precommit_v25_suite.py",
 )
 
 
