@@ -6,6 +6,8 @@ The code covers three task relationships—**independent**, **shared intermediat
 
 **Start here:** [Answer-only precommit workflow](docs/precommit.md) · [Quick start](#quick-start--no-model-or-gpu) · [Other workflows](docs/running.md) · [Script index](scripts/README.md) · [Validation](docs/validation.md)
 
+The v2.4 workflow adds controlled A/C dependency switching, left/right parent placement, B-first repeated-forward patching, and length-matched token-space controls. [Run v2.4 on Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v24.ipynb); see the [task and analysis contracts](docs/precommit.md#v24-dependency-position-and-space) before interpreting a run.
+
 This is a **code-only research repository**. Model-run records, empirical results, research reports, figures, activation arrays, and pretrained weights are maintained separately. The examples below define tasks and expected arithmetic; they are not model results.
 
 ## Research problem

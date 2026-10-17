@@ -16,6 +16,10 @@ See [task and data contracts](../docs/precommit.md). All versioned runners have 
 | Full audit | `analyze_precommit_v22.py RUNS --out FILE` | Complete two-model supervisor layout and code ZIP |
 | Candidate diagnostic | `audit_precommit_v22_candidates.py RUNS --out FILE` | iLLaDA saved probabilities; candidate versus Target changes |
 | Carry/borrow diagnostic | `audit_precommit_v22_carry.py RUNS --out FILE` | iLLaDA saved probabilities; tens-only effect, split summaries |
+| Dependency / position / space exploration | `run_precommit_v24.py --out RUN` | Independent A/C parents, fixed B position, B-first interventions, space sweep |
+| Bounded v2.4 A100 suite | `colab_precommit_v24_suite.py` | iLLaDA; private archive even after failure |
+| v2.4 audit | `analyze_precommit_v24.py RUN --out FILE` | One completed model folder; probability replay and group-paired contrasts |
+| v2.4 figures | `plot_precommit_v24.py SUMMARY --out DIR` | Audited summary JSON; dependency, persistence, and space plots |
 
 Mediation, projected-state interventions, and B-first repeated-forward patching are not implemented in v2.2. Sustained here means multiple layer outputs inside one forward; it is distinct from sustained decoding interventions below.
 

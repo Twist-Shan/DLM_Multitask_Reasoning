@@ -29,8 +29,42 @@ The arithmetic answers are A=17, B=29. The supplied canvas is `A = [M][M]; B = [
 | v2 | `precommit_v2` | Addition family, native suffix, answer-token audit, single-question calibration |
 | v2.1 | `precommit_v21` | Requested wording × physical slots; initial-forward A-to-B patching |
 | v2.2 | `precommit_v22` | Compensated Sources, independent drift, adjacent-layer and sustained-layer interventions, resampling |
+| v2.4 | `precommit_v24` | A/C dependency selection, parent left/right of B, B-first persistent interventions, mask/EOS space controls |
 
-The v2.2 runner does not implement prompt/A-region mediation, subspace interventions, or B-first persistence. Those are future experiments, not alternate flags on this runner. Historical source files remain separate so that a new experiment cannot silently change an earlier protocol.
+The v2.2 runner does not implement prompt/A-region mediation, subspace interventions, or B-first persistence. v2.4 adds B-first persistence; mediation and subspace interventions remain unimplemented. Historical source files remain separate so that a new experiment cannot silently change an earlier protocol.
+
+## v2.4: dependency, position, and space
+
+This separate iLLaDA runner extends the inspected calibration task family with an independently defined C. A and C each sum four one-digit operands. The prompt specifies either `B=A+V` or `B=C+V`, never both simultaneously. Half of the generated groups have A=C and half have different values. In this version C is the alternative parent, not the intermediate named C in v2. The generator and seed are explicit; no reserved discovery or confirmation examples are evaluated.
+
+For example, A=(6+6)+(3+7)=22, C=(4+8)+(6+6)=24, V=4+5=9. B is 31 with parent A and 33 with parent C. The exact prompt is:
+
+```text
+Solve the arithmetic exactly.
+Definition of A: A = (6 + 6) + (3 + 7).
+Definition of C: C = (4 + 8) + (6 + 6).
+Definition of B: B = A + (4 + 5).
+Fill the labelled answer fields in the supplied response template. Each answer is a two-digit integer. Do not write intermediate steps or extra text.
+```
+
+`ABC` and `CBA` canvases hold B's absolute position and total token count fixed. Every answer digit starts masked. Change-A and change-C Sources act on one operand; same-value Sources compensate within that variable; compensated Sources offset V when the changed variable is B's parent. `B_only`, unused, self, and final-layer cross-position conditions provide additional controls. The primary contrast is related `(change−same)` minus unrelated `(change−same)`, averaged within base group. Candidate B+sign is a diagnostic off-graph candidate for unrelated-variable interventions.
+
+The B-first decoder commits both B digits before either parent field. It compares a clean baseline, first-forward-only intervention, and intervention on every forward until B is complete. Each active forward recomputes Source states using Source facts and the current Target visible canvas; this mixed context can disagree with Source's arithmetic and is saved explicitly. After B, patching stops and A/C complete. These are manipulated commitment schedules, not claims about the model's natural order.
+
+Space quantity uses 0/2/8/32 extra positions, filled with masks or native EOS IDs before the native chat suffix. Space usage compares a labelled A slot, labelled C slot, and length-matched mask/EOS tails. Prompt and B positions stay fixed; in usage comparisons total length and suffix offsets also match. Only B commits, always in two forwards; other masks remain masked. All usage patches replace the same two physical positions. Extra tokens change per-forward compute, so equal forward counts do not imply equal FLOPs.
+
+```sh
+python scripts/run_precommit_v24.py --seed 123 --prepare-only --out runs/prepare-v24
+python scripts/run_precommit_v24.py --seed 123 --audit-only --out runs/audit-v24
+python scripts/run_precommit_v24.py --seed 123 --out runs/illada-v24
+python scripts/analyze_precommit_v24.py runs/illada-v24 --out runs/v24-analysis.json
+python -m pip install matplotlib numpy
+python scripts/plot_precommit_v24.py runs/v24-analysis.json --out runs/v24-figures
+```
+
+The first command needs no model dependencies; the second loads the real tokenizer only. Full execution needs CUDA and pinned dependencies. Every run requires a fresh output directory. `--limit` supports smoke checks; the default runs the complete generated exploration set. The analyzer replays saved digit probabilities, checks Sources and canvas alignment, audits B-first/space commitments, and bootstraps base groups rather than repeated conditions. Its output is exploratory, not a held-out confirmation.
+
+[Open the clean v2.4 A100 launcher](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v24.ipynb). Its supervisor expects a newly packaged code ZIP at `/content/precommit-v24-code.zip`, runs iLLaDA with a 5400-second budget, and preserves partial records on failure. Download and verify your private archive before releasing the runtime. Prompt-region mediation and subspace patching remain separate, unimplemented plans.
 
 ## Offline preparation
 
