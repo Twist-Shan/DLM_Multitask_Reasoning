@@ -101,6 +101,18 @@ def analyze(folder):
                                       -get('change_'+other,other)+get('same_'+other,other)))
                 effects[f'{mode}/{side}/{equality}']=estimate(vals)
     result['dependency_selectivity']=effects
+    result['dependency_selectivity_by_parent']={}
+    for mode in ('L31','L24_31'):
+        for parent in ('A','C'):
+            vals=[];other='C' if parent=='A' else 'A'
+            for case in groups:
+                for layout in v.LAYOUTS:
+                    for sign in (-1,1):
+                        def get(prefix,site):
+                            return patches[case,parent,layout,prefix+'_'+site,sign,site,mode]['delta']
+                        vals.append((case,get('change',parent)-get('same',parent)
+                                          -get('change',other)+get('same',other)))
+            result['dependency_selectivity_by_parent'][mode+'/'+parent]=estimate(vals)
     result['patch_cells']={}
     for mode in v.MODES:
         for kind_prefix in ('change','same','comp'):
@@ -135,6 +147,7 @@ def analyze(folder):
         for side in ('all','left','right'):
             rr=[r for r in rows['rollout'] if r['patch_mode']==mode and (side=='all' or r['parent_side']==side)]
             before=[];after=[];new=lost=consistent=parent_transferred=0
+            complete_before=complete_after=complete_new=complete_lost=0
             for r in rr:
                 base=baseline[r['case'],r['parent'],r['layout'],'B_first']
                 pre=base['values']['B']==r['candidate_B'];post=r['values']['B']==r['candidate_B']
@@ -142,12 +155,17 @@ def analyze(folder):
                 original_parent=r['expected'][r['parent']]
                 consistent+=r['values'][r['parent']] is not None and r['values']['B']==r['values'][r['parent']]+r['expected']['B']-original_parent
                 parent_transferred+=post and r['values'][r['parent']]==original_parent+r['sign']
+                alternative=dict(r['expected'],B=r['candidate_B'])
+                alternative[r['parent']]+=r['sign']
+                cb=base['values']==alternative;ca=r['values']==alternative
+                complete_before+=cb;complete_after+=ca;complete_new+=ca and not cb;complete_lost+=cb and not ca
                 for w in r['writes'][:2]:
                     if w['position'] not in r['canvas']['spans']['B']:raise ValueError('B-first failed')
                     for k in ('A','C'):
                         if any(w['state'][p]!=r['canvas']['mask_id'] for p in r['canvas']['spans'][k]):raise ValueError('Parent committed before B')
             result['rollout'][mode+'/'+side]=dict(n=len(rr),baseline_candidate=sum(before),after_candidate=sum(after),
                 new=new,lost=lost,relationship_consistent=consistent,candidate_and_parent_transferred=parent_transferred,
+                complete_counterfactual=dict(baseline=complete_before,after=complete_after,new=complete_new,lost=complete_lost),
                 paired_gain=estimate([(r['case'],float(post)-float(pre)) for r,pre,post in zip(rr,before,after)]))
     space={(r['case'],r['parent'],r['condition']):r for r in rows['space']}
     if len(space)!=len(rows['space']):raise ValueError('Duplicate space behavior')
@@ -195,6 +213,20 @@ def analyze(folder):
                     cat=('related_slot' if r['condition']=='slot_'+r['parent'] else 'unrelated_slot') if r['condition'].startswith('slot_') else r['condition']
                     if cat==category:rr.append(r)
                 result['space_patch'][mode+'/'+category+'/'+prefix]=estimate([(r['case'],r['delta']) for r in rr])
+    space_patches={(r['case'],r['parent'],r['condition'],r['kind'],r['sign'],r['mode']):r for r in rows['space_patch']}
+    if len(space_patches)!=len(rows['space_patch']):raise ValueError('Duplicate space patch')
+    result['space_patch_contrasts']={}
+    for mode in ('L31','L24_31'):
+        for control in ('unrelated_slot','matched_mask','matched_eos'):
+            vals=[]
+            for case in groups:
+                for parent in ('A','C'):
+                    related='slot_'+parent
+                    other='slot_'+('C' if parent=='A' else 'A') if control=='unrelated_slot' else control
+                    for sign in (-1,1):
+                        def get(cond,kind):return space_patches[case,parent,cond,kind+'_'+parent,sign,mode]['delta']
+                        vals.append((case,get(related,'comp')-get(related,'same')-get(other,'comp')+get(other,'same')))
+            result['space_patch_contrasts'][mode+'/'+control]=estimate(vals)
     return result
 
 
