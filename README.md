@@ -174,3 +174,7 @@ A second interface lets the model write its own calculations and final A/B answe
 [Run in Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Free_Reasoning.ipynb) · [Protocol and commands](docs/free_generation.md)
 
 Replay the exact masked state before a natural reference and patch residual states from **Source** into **Target**. Evaluate local predictions, actual token commitments, final answers, and calculation consistency separately. This repository includes code and a clean launcher only; historical outputs and empirical reports remain private.
+
+### Benchmark transfer
+
+[MuSiQue and audited StepGame](docs/benchmark_transfer.md) extend calibration to natural-text multihop QA and spatial reasoning. The adapters preserve original questions, audit dependency structure, and compare B / AB / BA / RB. Downloaded cases and results are private; this is an adapted exploratory protocol, not an official benchmark leaderboard run.

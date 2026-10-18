@@ -15,3 +15,7 @@ configs/local/
 .env
 .env.*
 *.log
+
+# Benchmark inputs and all new research records remain private.
+data/external/
+records/
