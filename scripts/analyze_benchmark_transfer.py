@@ -10,6 +10,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from dlm_coupling import benchmark_transfer as task
 
 
+def completed_final(text):
+    """Secondary diagnostic only: score after one completed reasoning block."""
+    text = text.strip()
+    if text.startswith('<think>'):
+        if text.count('<think>') != 1 or text.count('</think>') != 1:
+            return None
+        return text.split('</think>', 1)[1].strip()
+    return text if '<think>' not in text and '</think>' not in text else None
+
+
 def analyze(rows):
     groups = defaultdict(list)
     paired = defaultdict(dict)
@@ -53,6 +63,15 @@ def main():
         if any(row[key] != rescored[key] for key in rescored):
             raise ValueError('Stored score does not match regenerated score')
     result = analyze(rows)
+    final_rows = []
+    for row in rows:
+        final = completed_final(row['generation']['text'])
+        final_rows.append(dict(row, **task.score(by_id[row['case_id']], final or '', row['requested'])))
+    result['completed_final_diagnostic'] = analyze(final_rows)
+    result['generation_completion'] = dict(n=len(rows),
+        starts_think=sum(r['generation']['text'].lstrip().startswith('<think>') for r in rows),
+        closes_think=sum('</think>' in r['generation']['text'] for r in rows),
+        eos_found=sum(r['generation']['eos_found'] for r in rows))
     result['manifest'] = manifest
     result['by_hops'] = {str(h): analyze([r for r in rows if r['hops'] == h]) for h in (2,3,4)}
     selected = {r['case_id'] for r in rows}
@@ -83,14 +102,20 @@ def main():
     <p>当前结论：这些行为差异用于筛选下一轮适合研究的任务。它们不能证明A区域中的未提交状态被B使用，也不能证明DLM优于ARLM。
     格式失败、标准支持条件和完整上下文条件应分别检查；每个深度仅3题，结论待扩大样本验证。</p>
     <h2>原始输出与完整 prompt</h2><p>以下记录保留失败样例。每个折叠项对应一次实际生成。</p>'''
+    body+='<h3>推理完成情况与事后诊断</h3><pre>'+esc(json.dumps(result['generation_completion'],ensure_ascii=False,indent=2))+'</pre><p>事后诊断只取一个完整 &lt;think&gt;...&lt;/think&gt; 区块之后的文本，再按原有标签格式评分；不从未完成的推理中抽取答案。主评分保持原样。没有完成回答时，零分不能用于推断模型推理能力或联合效应。</p>'+table(result['completed_final_diagnostic']['summary'])
     body+='<p>StepGame中A、B答案恰好相同的题数：'+str(result['stepgame_same_A_B']['same'])+'/'+str(len(spatial))+'。不能以相同答案的改善单独排除复制解释。</p>'
     for r in rows:
         title=f"{r['benchmark']} {r['case_id']} {r['context']} {r['requested']} | B EM={r['scores']['B']['em']}"
-        body+='<details><summary>'+esc(title)+'</summary><h3>Prompt</h3><pre>'+esc(r['prompt'])+'</pre><h3>Output</h3><pre>'+esc(r['generation']['text'])+'</pre></details>'
+        gold = {k: by_id[r['case_id']]['answers'][k] for k in r['requested']}
+        body+='<details><summary>'+esc(title)+'</summary><h3>Prompt</h3><pre>'+esc(r['prompt'])+'</pre><h3>评分答案</h3><pre>'+esc(json.dumps(gold,ensure_ascii=False,indent=2))+'</pre><h3>Output</h3><pre>'+esc(r['generation']['text'])+'</pre></details>'
     body+='''<h2>出处与解释边界</h2><p><a href="https://aclanthology.org/2022.tacl-1.31/">MuSiQue原论文</a>采用有依赖的单跳问题组合，并保留支持段落与分解；
     <a href="https://github.com/ShiZhengyan/StepGame">StepGame作者仓库</a>为合成空间任务；
     <a href="https://arxiv.org/abs/2401.03991">StepGame模板审计</a>说明应先核对语言模板和标签。
     本地docs/benchmark_transfer.md记录了适配限制与下一步因果实验要求。</p>'''
+    if manifest['max_new_tokens'] != 128:
+        body = body.replace('自然文本与空间推理：首次迁移试验', '自然文本与空间推理：较长输出诊断')
+        body = body.replace('预定设置：seed=123；MuSiQue 与 StepGame 各按 2/3/4 跳取 3 题，共18题。实际执行数见下表。B、AB、BA、RB 使用相同上下文与128 token输出预算，每次forward提交4个token。',
+            '本页为首轮之后的较长输出诊断：seed=123，每套benchmark第一道2-hop题，B-only与AB，完整上下文。输出预算'+str(manifest['max_new_tokens'])+' token，每次forward提交4个token。该样本量只能检查回答是否完成，不能估计联合效应。')
     args.out.write_text(body, encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False))
 

@@ -19,6 +19,7 @@ This extension tests whether dependency-sensitive joint answering transfers beyo
 - StepGame author HF validation revision `6d859381dfd518cae3f073b268aaa323bf4dcf04`. Each sentence must have one unambiguous semantic mapping. Solve integer coordinates and compare the result to the published label. Retain published labels and source rows. Template-parser coverage is a selection limitation, and a disagreement is a candidate annotation/parser issue, not automatically a proven dataset error.
 - Store `k_hop` separately from the measured shortest query path. The author card describes k both as a maximum and as the required hops; the observed fields are not interchangeable. Stratify this adaptation by the measured path length.
 - Select ten cases per benchmark × {2,3,4} hops with seed123 before any model outcomes. Initial smoke pilot takes the first three from each cell, for 18 cases and 108 generation conditions. Do not substitute failures with easier questions.
+- Public benchmark questions may have appeared in pretraining; contamination is not ruled out. Correct answers alone do not establish passage-grounded multihop reasoning. Future coherent counterfactual passages and unrelated-information controls are required.
 
 ## Questions and controls
 
@@ -47,6 +48,15 @@ python scripts/run_benchmark_transfer.py --dataset runs/transfer-prepared/datase
 python scripts/run_benchmark_transfer.py --dataset runs/transfer-prepared/dataset.json --out runs/transfer-illada --cases-per-cell 3 --max-seconds 1800
 python -m unittest discover -s tests -p test_benchmark_transfer.py
 ```
+
+If the short canvas is consumed by unfinished reasoning, preserve the original run and diagnose completion separately. For example, keep the first two-hop case from each benchmark and compare B/AB with a larger canvas while retaining four commits per forward:
+
+```shell
+python scripts/run_benchmark_transfer.py --dataset runs/transfer-prepared/dataset.json --out runs/transfer-long-diagnostic --cases-per-cell 1 --hops 2 --contexts full --requests B AB --max-new-tokens 1024 --max-seconds 1200
+python scripts/analyze_benchmark_transfer.py --run runs/transfer-long-diagnostic --out reports/transfer-long-diagnostic.html
+```
+
+The analyzer preserves strict whole-response scores and separately labels a post-hoc diagnostic that scores text after exactly one completed `<think>...</think>` block. It never extracts an answer from unfinished reasoning. Completion diagnostics must not be reported as confirmation of a joint-answer effect. Larger canvases also change the masked workspace, so their effect is not solely extra elapsed reasoning time.
 
 The runner refuses to overwrite an output directory. Model weights load only after tokenizer/context auditing. A separate external process timeout is recommended to bound model download or a stalled forward.
 

@@ -35,6 +35,15 @@ class TransferTests(unittest.TestCase):
         self.assertEqual(case['dependency_edges'], [(0, 1), (1, 2)])
         self.assertNotIn('secret', case['questions']['A'])
 
+    def test_completed_final_diagnostic_does_not_mine_reasoning(self):
+        import sys
+        from pathlib import Path
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
+        from analyze_benchmark_transfer import completed_final
+        self.assertIsNone(completed_final('<think>draft B: correct but unfinished'))
+        self.assertEqual(completed_final('<think>draft</think>\nB: answer'), 'B: answer')
+        self.assertIsNone(completed_final('<think>a<think>b</think>B: answer'))
+
 
 if __name__ == '__main__':
     unittest.main()

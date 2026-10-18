@@ -27,7 +27,13 @@ def main():
     p.add_argument('--max-seconds', type=int, default=3600)
     p.add_argument('--audit-only', action='store_true')
     p.add_argument('--cases-per-cell', type=int, default=3)
+    p.add_argument('--hops', nargs='+', type=int, choices=[2,3,4], default=[2,3,4])
+    p.add_argument('--requests', nargs='+', choices=['B','AB','BA','RB'], default=['B','AB','BA','RB'])
+    p.add_argument('--contexts', nargs='+', choices=['full','support'], default=['full','support'])
+    p.add_argument('--max-new-tokens', type=int, default=128)
     args = p.parse_args()
+    if args.cases_per_cell < 1 or args.max_new_tokens < 1 or args.per_hop < 1:
+        p.error('Sample counts and token budget must be positive')
     args.out.mkdir(parents=True, exist_ok=False)
     if args.prepare:
         files = ['musique-dev.jsonl', 'stepgame-valid.jsonl', 'stepgame-semantic-mapping.py']
@@ -53,19 +59,21 @@ def main():
     limit = min([x for x in limits if type(x) is int and x > 0] or [4096])
     counts = {}
     for case in data['cases']:
+        if case['hops'] not in args.hops:
+            continue
         cell = (case['benchmark'], case['hops'])
         counts[cell] = counts.get(cell, 0) + 1
         if counts[cell] > args.cases_per_cell:
             continue
-        for context in (['full', 'support'] if case['benchmark'] == 'musique' else ['full']):
+        for context in (args.contexts if case['benchmark'] == 'musique' else [c for c in args.contexts if c == 'full']):
             group = []
-            for requested in ('B', 'AB', 'BA', 'RB'):
+            for requested in args.requests:
                 text = task.prompt(case, requested, context)
                 tokens = backend.tokenizer.apply_chat_template([{'role': 'user', 'content': text}], tokenize=True, add_generation_prompt=True)
                 group.append(dict(case_id=case['id'], benchmark=case['benchmark'], hops=case['hops'],
                                   context=context, requested=requested, prompt=text, prompt_tokens=len(tokens)))
             # Paired exclusion: never compare different subsets after context failures.
-            eligible = all(j['prompt_tokens'] + 128 <= limit for j in group)
+            eligible = all(j['prompt_tokens'] + args.max_new_tokens <= limit for j in group)
             for j in group:
                 j['eligible'] = eligible
             jobs.extend(group)
@@ -73,7 +81,8 @@ def main():
     manifest = dict(status='tokenizer_audited', model=cfg, dataset_sha256=task.digest(data), seed=args.seed,
                     jobs=len(jobs), eligible=sum(j['eligible'] for j in jobs), context_limit=limit,
                     cases_per_cell=args.cases_per_cell,
-                    max_new_tokens=128, tokens_per_step=4, rows=0, forwards=0,
+                    max_new_tokens=args.max_new_tokens, tokens_per_step=4, rows=0, forwards=0,
+                    selected_hops=args.hops, requests=args.requests, contexts=args.contexts,
                     scope='Exploratory adapted validation subsets; no activation patching or official benchmark score')
     dump(args.out / 'manifest.json', manifest)
     if args.audit_only:
@@ -89,7 +98,7 @@ def main():
                 break
             if not job['eligible']:
                 continue
-            generation = generate_text(backend, job['prompt'], max_new_tokens=128, tokens_per_step=4)
+            generation = generate_text(backend, job['prompt'], max_new_tokens=args.max_new_tokens, tokens_per_step=4)
             row = dict(**job, generation=generation, **task.score(by_id[job['case_id']], generation['text'], job['requested']))
             with (args.out / 'results.jsonl').open('a', encoding='utf-8') as f:
                 f.write(json.dumps(row, ensure_ascii=False) + '\n')
