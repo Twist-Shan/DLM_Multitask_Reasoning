@@ -58,3 +58,12 @@ python scripts/analyze_benchmark_transfer_v2.py --run runs/transfer-v2-illada --
 
 Use a new output directory for each invocation. Source/Target causal adaptation
 remains a later stage after completion, extraction and basic accuracy are usable.
+
+## Additional diagnostic (post-hoc)
+
+After observing early v2 generations with malformed closing think tags but
+explicit final answers, the analyzer gained a separately labeled diagnostic.
+It requires EOS and exactly one standalone `FINAL:` marker, then applies the
+unchanged label and answer scorer to its suffix. It does not require valid
+think tags, and does not score unfinished outputs or search reasoning for an
+answer. This is post-hoc format diagnosis, not a replacement primary endpoint.

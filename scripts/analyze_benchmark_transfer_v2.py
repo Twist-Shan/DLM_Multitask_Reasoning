@@ -3,11 +3,25 @@ import argparse
 from collections import defaultdict
 import html
 import json
+import re
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from dlm_coupling import benchmark_transfer as base, benchmark_transfer_v2 as task
+
+
+def explicit_final_diagnostic(case, row):
+    """Post-hoc diagnostic, never a replacement for frozen primary scoring.
+
+    Motivated by early v2 outputs with malformed think tags but explicit FINAL.
+    Require EOS and exactly one standalone FINAL marker, then apply unchanged
+    label/answer checks. Do not mine answers from reasoning or truncated text.
+    """
+    text = row['generation']['text']
+    markers = list(re.finditer(r'(?m)^\s*FINAL:\s*$', text))
+    final = text[markers[0].end():].strip() if len(markers)==1 and row['generation']['eos_found'] else ''
+    return dict(row, **base.score(case, final, row['requested']))
 
 
 def summarize(rows):
@@ -71,6 +85,7 @@ def audit(run):
         assert all(sum(r['compute'][k] for r in rows) == v for k,v in manifest['compute'].items())
     result.update(manifest=manifest, eligible_jobs=len(expected), completed_rows=len(rows),
         by_hops={str(h): summarize([r for r in rows if r['hops']==h]) for h in (2,3,4)})
+    result['posthoc_explicit_final_diagnostic'] = summarize([explicit_final_diagnostic(by_id[r['case_id']],r) for r in rows])
     return result, rows, by_id
 
 
@@ -103,6 +118,9 @@ def main():
         '<p>n 是生成条件数；valid 是最终格式有效数；eos 是生成终止符出现数；B_correct 为 B 的 EM 正确数。B_f1 包含格式失败；B_em_given_valid 只作诊断。forwards 为前向次数，token_positions 是每次前向输入长度之和，并非 FLOPs。</p>',
         '<h2>同题配对比较</h2>',table(result['paired']),
         '<p>delta_em 是同题联合请求减 B-only 的平均 EM 差；improved/worsened 分别为错转对、对转错的题数。主实验每个 benchmark 最多九题，完整画布比较每个 benchmark 仅一题；结果仅描述观察，不足以确认普遍联合收益，更不能作为 activation 信息共享的因果证据。</p>',
+        '<h2>事后格式诊断：已结束输出中的显式 FINAL</h2>',
+        '<p>此诊断在看到早期 v2 输出的 think 结束标签损坏后增加，不能替代上述预定主评分。只接受已生成 EOS、且恰有一个独立 FINAL: 标记的输出，再使用原有标签与答案匹配规则；不从推理或截断文本中挑答案。目的：分离标签损坏与最终内容错误。</p>',
+        table(result['posthoc_explicit_final_diagnostic']['summary']),
         '<h2>逐题 prompt、答案与原始生成</h2>']
     for r in rows:
         parts.append('<details><summary>'+esc(f"{r['benchmark']} | {r['case_id']} | {r['sampler']} | {r['requested']} | valid={r['format_valid']} | B EM={r['scores']['B']['em']}")+'</summary><h3>Prompt</h3><pre>'+esc(r['prompt'])+'</pre><h3>参考答案</h3><pre>'+esc(json.dumps(by_id[r['case_id']]['answers'],ensure_ascii=False,indent=2))+'</pre><h3>原始生成</h3><pre>'+esc(r['generation']['text'])+'</pre><h3>评分</h3><pre>'+esc(json.dumps({k:r[k] for k in ('final_text','extraction_route','scores')},ensure_ascii=False,indent=2))+'</pre></details>')

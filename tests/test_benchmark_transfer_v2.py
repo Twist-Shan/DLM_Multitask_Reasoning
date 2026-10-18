@@ -34,6 +34,12 @@ class V2Tests(unittest.TestCase):
         result=module.summarize(rows)
         self.assertEqual([(p['n'],p['delta_em']) for p in result['paired']],[(1,1),(1,-1)])
         with self.assertRaises(ValueError):module.summarize(rows+[rows[0]])
+        c=dict(benchmark='musique',answers={'B':['x']})
+        r=row('c','B','block32',0)
+        r['generation'].update(text='<think>draft</thinkBROKEN\nFINAL:\nB: x')
+        self.assertEqual(module.explicit_final_diagnostic(c,r)['scores']['B']['em'],1)
+        r['generation']['eos_found']=False
+        self.assertEqual(module.explicit_final_diagnostic(c,r)['scores']['B']['em'],0)
 
     def test_final_extraction(self):
         self.assertEqual(t.final_answer('<think>draft</think>\nFINAL:\nB: x')[0],'B: x')
