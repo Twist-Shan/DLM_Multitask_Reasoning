@@ -75,6 +75,8 @@ def audit(run):
         assert all(r[k] == v for k,v in scored.items()), 'Score mismatch'
         g = r['generation']
         assert not g['gold_used_for_generation']
+        assert g['prompt_tokens']==r['prompt_tokens']
+        assert g['output_budget']==manifest['budget'] and g['tokens_per_step']==manifest['tokens_per_step']
         assert g['nfe'] == len(g['steps']) == r['compute']['forwards']
         writes = [w for step in g['steps'] for w in step['writes']]
         assert len({w['output_position'] for w in writes}) == len(writes) == len(g['output_token_ids'])
@@ -106,7 +108,7 @@ def audit(run):
 def table(records):
     if not records:
         return '<p>No observations.</p>'
-    esc = lambda x: html.escape(str(round(x,4) if isinstance(x,float) else x))
+    esc = lambda x: html.escape('—' if x is None else str(round(x,4) if isinstance(x,float) else x))
     keys = list(records[0])
     return '<table><tr>'+''.join('<th>'+esc(k)+'</th>' for k in keys)+'</tr>'+''.join(
         '<tr>'+''.join('<td>'+esc(r[k])+'</td>' for k in keys)+'</tr>' for r in records)+'</table>'
@@ -142,12 +144,13 @@ def main():
     parts = ['<!doctype html><meta charset="utf-8"><title>MuSiQue & StepGame v2</title>',
         '<style>body{font:16px/1.65 system-ui;max-width:1200px;margin:40px auto;padding:20px;color:#202c38}table{border-collapse:collapse;font-size:14px}th,td{border:1px solid #ccd5de;padding:7px}pre{white-space:pre-wrap;background:#f1f4f7;padding:16px}details{margin:16px 0}h2{margin-top:36px}</style>',
         '<h1>MuSiQue 与 StepGame：v2 生成校准</h1>',
+        '<p><strong>运行状态：'+esc(result['manifest']['status'])+'；已保存 '+str(len(rows))+'/'+str(result['eligible_jobs'])+' 个条件。</strong> 非 complete 的报告是中途或不完整记录，不能视为完整题集结果。</p>',
         '<p>目的：先检验模型能否稳定完成推理与答案，再探索联合请求是否改善目标问题 B。A 是相关上游问题，R 是选取的无关问题；AB/BA 表示请求的答案顺序，不保证实际推理或 token 提交顺序。</p>',
         '<p>设置：seed 123，iLLaDA，原生 chat template，完整上下文。主实验按 32-token 块逐步追加，块内每次提交四个最高置信度 token，最大输出 1024 tokens。四个完整画布条件只作同题诊断；两种方法并不匹配总计算量，也同时改变了可见 mask 空间与提交限制。</p>',
-        '<p>评分在运行前固定：只读取完成的 think 区域之后、FINAL: 标记之后的标签答案；也接受直接标签答案。未完成推理、错误标签或顺序均判格式失败，不从推理里挑正确答案。EM 为规范化后完全匹配；MuSiQue F1 为答案词元重叠 F1。格式失败计入总分母，同时报告有效格式条件下的 EM。</p>',
+        '<p>评分在运行前固定：只读取完成的 think 区域之后、FINAL: 标记之后的标签答案；也接受直接标签答案。未完成推理、错误标签或顺序均判格式失败，不从推理里挑正确答案。EM 为规范化后完全匹配；MuSiQue F1 = 2 × 重叠词元数 /（预测词元数 + 参考词元数），按标注别名取最高值。格式失败计入总分母，同时报告有效格式条件下的 EM。</p>',
         '<p>来源：<a href="https://github.com/StonyBrookNLP/musique">MuSiQue</a>（文档多跳问答）；<a href="https://github.com/ShiZhengyan/StepGame">StepGame</a>（合成空间关系）。这是适配后的探索子集，并非官方排行榜成绩。MuSiQue 使用公开镜像；StepGame 按语义解析与标签一致性筛选，存在筛选偏差。</p>',
         '<h2>总体结果</h2>',table(result['summary']),
-        '<p>n 是生成条件数；valid 是最终格式有效数；eos 是生成终止符出现数；B_correct 为 B 的 EM 正确数。B_f1 包含格式失败；B_em_given_valid 只作诊断。forwards 为前向次数，token_positions 是每次前向输入长度之和，并非 FLOPs。</p>',
+        '<p>n 是生成条件数；valid 是最终格式有效数；eos 是生成终止符出现数；B_correct 为满足整条输出协议的 B 的 EM 正确数，不能当作纯内容准确率。错误的标签顺序也会导致整条失败。B_f1 包含格式失败；B_em_given_valid 只作诊断。forwards 为前向次数，token_positions 是每次前向输入长度之和，并非 FLOPs。</p>',
         '<h2>同题配对比较</h2>',table(result['paired']),
         '<p>delta_em 是同题联合请求减 B-only 的平均 EM 差；improved/worsened 分别为错转对、对转错的题数。主实验每个 benchmark 最多九题，完整画布比较每个 benchmark 仅一题；结果仅描述观察，不足以确认普遍联合收益，更不能作为 activation 信息共享的因果证据。</p>',
         '<h2>事后格式诊断：已结束输出中的显式 FINAL</h2>',
