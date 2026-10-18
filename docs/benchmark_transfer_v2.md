@@ -67,3 +67,27 @@ It requires EOS and exactly one standalone `FINAL:` marker, then applies the
 unchanged label and answer scorer to its suffix. It does not require valid
 think tags, and does not score unfinished outputs or search reasoning for an
 answer. This is post-hoc format diagnosis, not a replacement primary endpoint.
+
+## Author-decoder follow-up (exploratory, added after v2 began)
+
+The author's [evaluation configuration](https://github.com/ML-GSAI/LLaDA/blob/9182493720ed723ef8031210d85959364e51cbe0/eval_illada.sh)
+uses variable-length blocks and end-of-thinking guidance for long reasoning.
+A four-condition diagnostic uses the first 2-hop question of each benchmark,
+B and AB, unchanged v2 prompts and a 1024-token cap. The pinned author's
+`var_generate` uses 32 steps per 32-token block, end-think logit boost 100,
+power 3, greedy selection, and EOS stopping. The cap differs from the author's
+2048/4096-token reasoning evaluations. Commit rate, guidance and numerical
+implementation change together, so this is not a single-factor causal test.
+
+Obtain `generate.py` from the pinned author revision above; the runner verifies
+SHA256 before importing it. Upstream code and downloaded data are not vendored.
+
+```shell
+python scripts/run_benchmark_official_diagnostic.py --dataset runs/transfer-prepared/dataset.json --upstream /path/to/generate.py --out runs/transfer-author-diagnostic
+python scripts/analyze_benchmark_transfer_v2.py --run runs/transfer-v2-illada --official-run runs/transfer-author-diagnostic --out reports/transfer-v2
+```
+
+Use an external 1800-second watchdog for this four-condition diagnostic and
+retain partial outputs. It is not a confirmation set or an official benchmark
+score. Do not treat successful termination under guided decoding as evidence
+of autonomous planning or precommit information sharing.
