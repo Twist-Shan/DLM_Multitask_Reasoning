@@ -1,4 +1,4 @@
-"""Four exploratory controls using a pinned, separately obtained author decoder.
+"""Exploratory benchmark runs using a pinned, separately obtained author decoder.
 
 This is not an official benchmark evaluation: prompts and the 1024-token cap
 are from our v2 adaptation. Both commit rate and termination guidance change.
@@ -20,12 +20,23 @@ UPSTREAM_REVISION='9182493720ed723ef8031210d85959364e51cbe0'
 UPSTREAM_SHA256='d4d2d3c015511e63fe9237cd3197346148fb0c795b6c89e0b5ef4846be25252e'
 
 
+def make_jobs(data, prompt_task, scope):
+    cases=task.selected_cases(data,3 if scope=='expanded' else 1)
+    if scope=='diagnostic':
+        cases=[c for c in cases if c['hops']==2]
+    requests=('B','AB','BA','RB') if scope=='expanded' else ('B','AB')
+    jobs=[dict(case_id=c['id'],benchmark=c['benchmark'],requested=r,prompt=prompt_task.prompt(c,r))
+          for c in cases for r in requests]
+    return cases,jobs
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--dataset',type=Path,required=True)
     ap.add_argument('--upstream',type=Path,required=True)
     ap.add_argument('--out',type=Path,required=True)
     ap.add_argument('--prompt-version',choices=('v2','v3'),default='v2')
+    ap.add_argument('--scope',choices=('diagnostic','expanded'),default='diagnostic')
     args=ap.parse_args()
     if args.prompt_version=='v3':
         from dlm_coupling import benchmark_transfer_v3 as prompt_task
@@ -34,13 +45,12 @@ def main():
     if hashlib.sha256(args.upstream.read_bytes()).hexdigest()!=UPSTREAM_SHA256:
         raise ValueError('Author decoder hash mismatch; obtain generate.py at pinned revision')
     data=json.loads(args.dataset.read_text(encoding='utf-8'))
-    cases=task.selected_cases(data,1)
-    jobs=[dict(case_id=c['id'],benchmark=c['benchmark'],requested=r,prompt=prompt_task.prompt(c,r))
-          for c in cases if c['hops']==2 for r in ('B','AB')]
+    cases,jobs=make_jobs(data,prompt_task,args.scope)
     args.out.mkdir(parents=True,exist_ok=False)
     def dump(name,value):
         (args.out/name).write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding='utf-8')
     manifest=dict(protocol='benchmark-author-decoder-diagnostic',status='prepared',seed=123,
+        scope=args.scope,planned_rows=len(jobs),selected_case_ids=[c['id'] for c in cases],
         prompt_version=args.prompt_version,prompt_protocol=prompt_task.PROTOCOL,
         prompt_module_sha256=hashlib.sha256(Path(prompt_task.__file__).read_bytes()).hexdigest(),
         upstream_revision=UPSTREAM_REVISION,upstream_sha256=UPSTREAM_SHA256,

@@ -105,3 +105,10 @@ python scripts/analyze_benchmark_template.py --previous runs/author_v2 --current
 ```
 
 The comparison audits dataset, exact prompts, re-scored outputs, model revision and decoder configuration before displaying paired outputs. Keep generated reports and raw records private.
+
+
+## Expanded v3 pilot
+
+Add `--scope expanded --prompt-version v3` to the author-decoder runner for 18 existing exploratory cases (nine per benchmark, three each at 2/3/4 hops), each with B/AB/BA/RB. The default four-condition diagnostic remains unchanged. All 72 conditions are freshly generated; prior diagnostic outputs are not pooled. This expands the pilot, not an independent confirmation set.
+
+Analyze with `python scripts/analyze_benchmark_expanded.py --run runs/expanded --out reports/expanded`. The audit regenerates the exact job list and checks stored scores and compute counts. Summaries include EOS and format validity, B EM/F1, within-question changes from B-only, hop strata, a descriptive both-valid subset, and StepGame excluding equal A/B answers. Both-valid subsets can have selection bias. Keep raw data and generated reports private.
