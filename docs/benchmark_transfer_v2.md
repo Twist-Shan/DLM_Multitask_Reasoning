@@ -91,3 +91,17 @@ Use an external 1800-second watchdog for this four-condition diagnostic and
 retain partial outputs. It is not a confirmation set or an official benchmark
 score. Do not treat successful termination under guided decoding as evidence
 of autonomous planning or precommit information sharing.
+
+
+## Concrete-label template diagnostic (v3)
+
+`--prompt-version v3` on `scripts/run_benchmark_official_diagnostic.py` changes only the output-format instructions: use the actual requested labels and append a concrete ordered template. It preserves the v2 dataset selection (one two-hop case per benchmark, B and AB), author decoder, seed 123, 1024-token cap, and v2 strict scoring. The default remains v2 so old invocations retain their meaning. This is a paired prompt diagnostic, not a benchmark accuracy estimate.
+
+Run with the same separately obtained, hash-verified author `generate.py`:
+
+```sh
+python scripts/run_benchmark_official_diagnostic.py --dataset prepared/dataset.json --upstream upstream/illada_generate.py --out runs/template_v3 --prompt-version v3
+python scripts/analyze_benchmark_template.py --previous runs/author_v2 --current runs/template_v3 --out reports/template_comparison
+```
+
+The comparison audits dataset, exact prompts, re-scored outputs, model revision and decoder configuration before displaying paired outputs. Keep generated reports and raw records private.

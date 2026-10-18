@@ -25,17 +25,24 @@ def main():
     ap.add_argument('--dataset',type=Path,required=True)
     ap.add_argument('--upstream',type=Path,required=True)
     ap.add_argument('--out',type=Path,required=True)
+    ap.add_argument('--prompt-version',choices=('v2','v3'),default='v2')
     args=ap.parse_args()
+    if args.prompt_version=='v3':
+        from dlm_coupling import benchmark_transfer_v3 as prompt_task
+    else:
+        prompt_task=task
     if hashlib.sha256(args.upstream.read_bytes()).hexdigest()!=UPSTREAM_SHA256:
         raise ValueError('Author decoder hash mismatch; obtain generate.py at pinned revision')
     data=json.loads(args.dataset.read_text(encoding='utf-8'))
     cases=task.selected_cases(data,1)
-    jobs=[dict(case_id=c['id'],benchmark=c['benchmark'],requested=r,prompt=task.prompt(c,r))
+    jobs=[dict(case_id=c['id'],benchmark=c['benchmark'],requested=r,prompt=prompt_task.prompt(c,r))
           for c in cases if c['hops']==2 for r in ('B','AB')]
     args.out.mkdir(parents=True,exist_ok=False)
     def dump(name,value):
         (args.out/name).write_text(json.dumps(value,ensure_ascii=False,indent=2),encoding='utf-8')
     manifest=dict(protocol='benchmark-author-decoder-diagnostic',status='prepared',seed=123,
+        prompt_version=args.prompt_version,prompt_protocol=prompt_task.PROTOCOL,
+        prompt_module_sha256=hashlib.sha256(Path(prompt_task.__file__).read_bytes()).hexdigest(),
         upstream_revision=UPSTREAM_REVISION,upstream_sha256=UPSTREAM_SHA256,
         runner_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         dataset_sha256=base.digest(data),gen_length=1024,block_length=32,steps_per_block=32,
