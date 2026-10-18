@@ -49,3 +49,11 @@ python -m unittest discover -s tests -p test_benchmark_transfer.py
 ```
 
 The runner refuses to overwrite an output directory. Model weights load only after tokenizer/context auditing. A separate external process timeout is recommended to bound model download or a stalled forward.
+
+## Follow-up causal design (not implemented by this calibration)
+
+For StepGame, change a single upstream edge in Source, recompute coordinates, and check whether B's direction actually changes; changing an edge need not cross a direction boundary. Keep Target's other edges fixed. Include same-B edge changes, a disconnected R edge, and self-patching. Separately report A=B cases to address copying. An independent-condition effect must be evaluated at a matched counterfactual direction, not an arbitrary nearby label.
+
+For MuSiQue, ordinary unrelated examples are not automatically valid Source/Target pairs. A passage edit must retain a unique answer and a coherent bridge entity across relevant passages. Entity aliases, duplicate mentions, alternative supporting passages and token alignment require explicit auditing. Start with manually verified pairs; do not treat an upstream question's presence as evidence that its masked answer region mediates B. Full-context and oracle-support results should determine whether retrieval or reasoning warrants the first intervention.
+
+Before causal transfer, freeze eligible conditions and a separate confirmation set. Investigate output positions and commitment trajectories, then test Source/Target patching and attention interventions. Comparing AB to B alone measures the effect of the whole prompt change. Isolating a masked-region mechanism still requires the request × canvas controls used in the toy experiments.
