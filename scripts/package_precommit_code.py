@@ -12,6 +12,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = (
+    "run_answer_graphs.py", "analyze_answer_graphs.py", "colab_answer_graphs_suite.py",
     "run_precommit.py", "run_precommit_v2.py", "run_precommit_v21.py",
     "run_precommit_v22.py", "summarize_precommit.py", "analyze_precommit_v22.py",
     "audit_precommit_v22_candidates.py", "audit_precommit_v22_carry.py",
@@ -23,7 +24,7 @@ SCRIPTS = (
 
 
 def build(root):
-    paths = sorted([*root.glob("src/**/*.py"), *root.glob("tests/test_precommit*.py"),
+    paths = sorted([*root.glob("src/**/*.py"), *root.glob("tests/test_precommit*.py"), root / "tests/test_answer_graphs.py",
                     root / "pyproject.toml", root / "requirements/precommit.txt",
                     *(root / "scripts" / name for name in SCRIPTS)])
     payload = {p.relative_to(root).as_posix(): p.read_bytes() for p in paths}

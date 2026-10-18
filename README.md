@@ -8,6 +8,8 @@ The code covers three task relationships—**independent**, **shared intermediat
 
 The v2.6 workflow adds ARB/RAB layouts with separately intervenable A/R definitions, and directed attention blocking for frozen extra tail positions. [Run v2.6 on Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Precommit_v26.ipynb); see the [input, control, and analysis contracts](docs/precommit.md#v26-arb-routing-and-directed-attention). Earlier versioned runners remain available.
 
+The [small answer-graph workflow](docs/answer_graphs.md) adds independent, chain, fork, merge and diamond graphs with addition, subtraction, Boolean logic and symbolic lookup. It compares single/joint requests, physical layouts and commitment rules before patching. [Run on Colab](https://colab.research.google.com/github/Twist-Shan/DLM_Multitask_Reasoning/blob/main/notebooks/Run_Answer_Graphs.ipynb).
+
 This is a **code-only research repository**. Model-run records, empirical results, research reports, figures, activation arrays, and pretrained weights are maintained separately. The examples below define tasks and expected arithmetic; they are not model results.
 
 ## Research problem
