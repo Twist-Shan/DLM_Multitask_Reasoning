@@ -100,7 +100,7 @@ def main():
     <h2>执行状态</h2><pre>'''+esc(json.dumps(manifest,ensure_ascii=False,indent=2))+'''</pre>
     <h2>结果</h2>'''+table(result['summary'])+'<h2>配对变化</h2>'+table(result['paired_differences'])+'''
     <p>当前结论：这些行为差异用于筛选下一轮适合研究的任务。它们不能证明A区域中的未提交状态被B使用，也不能证明DLM优于ARLM。
-    格式失败、标准支持条件和完整上下文条件应分别检查；每个深度仅3题，结论待扩大样本验证。</p>
+    格式失败、标准支持条件和完整上下文条件应分别检查；本轮样本量很小，结论待扩大样本验证。</p>
     <h2>原始输出与完整 prompt</h2><p>以下记录保留失败样例。每个折叠项对应一次实际生成。</p>'''
     body+='<h3>推理完成情况与事后诊断</h3><pre>'+esc(json.dumps(result['generation_completion'],ensure_ascii=False,indent=2))+'</pre><p>事后诊断只取一个完整 &lt;think&gt;...&lt;/think&gt; 区块之后的文本，再按原有标签格式评分；不从未完成的推理中抽取答案。主评分保持原样。没有完成回答时，零分不能用于推断模型推理能力或联合效应。</p>'+table(result['completed_final_diagnostic']['summary'])
     body+='<p>StepGame中A、B答案恰好相同的题数：'+str(result['stepgame_same_A_B']['same'])+'/'+str(len(spatial))+'。不能以相同答案的改善单独排除复制解释。</p>'
@@ -114,8 +114,16 @@ def main():
     本地docs/benchmark_transfer.md记录了适配限制与下一步因果实验要求。</p>'''
     if manifest['max_new_tokens'] != 128:
         body = body.replace('自然文本与空间推理：首次迁移试验', '自然文本与空间推理：较长输出诊断')
-        body = body.replace('预定设置：seed=123；MuSiQue 与 StepGame 各按 2/3/4 跳取 3 题，共18题。实际执行数见下表。B、AB、BA、RB 使用相同上下文与128 token输出预算，每次forward提交4个token。',
-            '本页为首轮之后的较长输出诊断：seed=123，每套benchmark第一道2-hop题，B-only与AB，完整上下文。输出预算'+str(manifest['max_new_tokens'])+' token，每次forward提交4个token。该样本量只能检查回答是否完成，不能估计联合效应。')
+    settings = (f"本页设置：seed={manifest['seed']}，实际运行{len(selected)}道题、{len(rows)}个条件；"
+                f"跳数={sorted({r['hops'] for r in rows})}，请求={sorted({r['requested'] for r in rows})}，"
+                f"上下文={sorted({r['context'] for r in rows})}。输出预算{manifest['max_new_tokens']} token，"
+                f"每次forward提交{manifest['tokens_per_step']}个token。样本数量见下表。")
+    body = body.replace('预定设置：seed=123；MuSiQue 与 StepGame 各按 2/3/4 跳取 3 题，共18题。实际执行数见下表。B、AB、BA、RB 使用相同上下文与128 token输出预算，每次forward提交4个token。', settings)
+    if rows and not any(r['format_valid'] for r in rows):
+        warning = ('<p><strong>本轮未达到严格输出格式基线。</strong>全部'+str(len(rows))+
+                   '次输出未通过原定整段格式检查；其中'+str(result['generation_completion']['closes_think'])+
+                   '次出现推理结束标记。下表零分包含输出格式与生成截断失败，不能解释为全部问题都不会回答。请同时查看完整推理结束后的独立诊断与原始输出。</p>')
+        body=body.replace('<h2>设置与评分</h2>', warning+'<h2>设置与评分</h2>')
     args.out.write_text(body, encoding='utf-8')
     print(json.dumps(result,ensure_ascii=False))
 
