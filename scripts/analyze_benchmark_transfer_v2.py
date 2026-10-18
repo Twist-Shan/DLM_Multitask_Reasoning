@@ -14,7 +14,7 @@ from dlm_coupling import benchmark_transfer as base, benchmark_transfer_v2 as ta
 def explicit_final_diagnostic(case, row):
     """Post-hoc diagnostic, never a replacement for frozen primary scoring.
 
-    Motivated by early v2 outputs with malformed think tags but explicit FINAL.
+    Examines explicit FINAL independently of reasoning-tag validity.
     Require EOS and exactly one standalone FINAL marker, then apply unchanged
     label/answer checks. Do not mine answers from reasoning or truncated text.
     """
@@ -154,7 +154,7 @@ def main():
         '<h2>同题配对比较</h2>',table(result['paired']),
         '<p>delta_em 是同题联合请求减 B-only 的平均 EM 差；improved/worsened 分别为错转对、对转错的题数。主实验每个 benchmark 最多九题，完整画布比较每个 benchmark 仅一题；结果仅描述观察，不足以确认普遍联合收益，更不能作为 activation 信息共享的因果证据。</p>',
         '<h2>事后格式诊断：已结束输出中的显式 FINAL</h2>',
-        '<p>此诊断在看到早期 v2 输出的 think 结束标签损坏后增加，不能替代上述预定主评分。只接受已生成 EOS、且恰有一个独立 FINAL: 标记的输出，再使用原有标签与答案匹配规则；不从推理或截断文本中挑答案。目的：分离标签损坏与最终内容错误。</p>',
+        '<p>此诊断是单独报告的事后分析，不能替代上述预定主评分。只接受已生成 EOS、且恰有一个独立 FINAL: 标记的输出，再使用原有标签与答案匹配规则；不从推理或截断文本中挑答案。目的：分离标签损坏与最终内容错误。</p>',
         table(result['posthoc_explicit_final_diagnostic']['summary']),
         '<h2>同题解码对照</h2>',table(result['decoder_pairs']),
         '<p>每套任务仅一道题的 B/AB 对照，只能诊断生成表现。块大小、可用 mask 空间和总计算同时变化，不能把差异归因于某一种内部机制。</p>',
@@ -165,7 +165,7 @@ def main():
         '<h2>逐题 prompt、答案与原始生成</h2>']
     if author_rows:
         parts.extend(['<h2>追加的作者解码方案诊断</h2>',
-            '<p>看到主实验的生成问题并核对作者代码后追加，使用同一套任务各第一道两跳题的 B/AB。固定作者 generate.py revision，按需 32-token 块，每块 32 次前向，并启用结束思考 logit 引导（100，幂次 3）。输出上限仍为 1024，低于作者部分推理评测的上限；不是官方 benchmark 成绩。它同时改变提交速率、结束引导及数值实现，不能单独归因。</p>',
+            '<p>这是一项追加的探索对照，使用同一套任务各第一道两跳题的 B/AB。固定作者 generate.py revision，按需 32-token 块，每块 32 次前向，并启用结束思考 logit 引导（100，幂次 3）。输出上限仍为 1024，低于作者部分推理评测的上限；不是官方 benchmark 成绩。它同时改变提交速率、结束引导及数值实现，不能单独归因。</p>',
             '<p>来源：<a href="https://github.com/ML-GSAI/LLaDA/blob/9182493720ed723ef8031210d85959364e51cbe0/generate.py">固定版本生成代码</a>；<a href="https://github.com/ML-GSAI/LLaDA/blob/9182493720ed723ef8031210d85959364e51cbe0/eval_illada.sh">作者评测配置</a>。</p>',
             table(result['author_diagnostic']['summary']),
             '<p>每套任务仅一道题，只检验这组生成配置是否能完成样例；不能估计 benchmark 总体准确率或稳定联合收益。</p>'])

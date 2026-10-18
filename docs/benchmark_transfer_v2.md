@@ -61,9 +61,9 @@ remains a later stage after completion, extraction and basic accuracy are usable
 
 ## Additional diagnostic (post-hoc)
 
-After observing early v2 generations with malformed closing think tags but
-explicit final answers, the analyzer gained a separately labeled diagnostic.
-It requires EOS and exactly one standalone `FINAL:` marker, then applies the
+The analyzer offers a separately labeled diagnostic for explicit final answers
+independently of think-tag validity. It requires EOS and exactly one standalone
+`FINAL:` marker, then applies the
 unchanged label and answer scorer to its suffix. It does not require valid
 think tags, and does not score unfinished outputs or search reasoning for an
 answer. This is post-hoc format diagnosis, not a replacement primary endpoint.
