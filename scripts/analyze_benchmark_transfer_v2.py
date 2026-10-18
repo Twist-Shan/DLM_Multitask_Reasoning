@@ -161,14 +161,14 @@ def main():
         '<h2>StepGame：排除 A 与 B 同答案的题目</h2>',
         '<p>'+esc(str(result['stepgame_same_answers']))+'</p>',
         table(result['stepgame_excluding_same_answers']['summary']),
-        '<p>此表用于辨别同答案复用这一混杂因素。排除后样本更少，不能据此确立多跳组合机制。</p>',
-        '<h2>逐题 prompt、答案与原始生成</h2>']
+        '<p>此表用于辨别同答案复用这一混杂因素。排除后样本更少，不能据此确立多跳组合机制。</p>']
     if author_rows:
         parts.extend(['<h2>追加的作者解码方案诊断</h2>',
             '<p>这是一项追加的探索对照，使用同一套任务各第一道两跳题的 B/AB。固定作者 generate.py revision，按需 32-token 块，每块 32 次前向，并启用结束思考 logit 引导（100，幂次 3）。输出上限仍为 1024，低于作者部分推理评测的上限；不是官方 benchmark 成绩。它同时改变提交速率、结束引导及数值实现，不能单独归因。</p>',
             '<p>来源：<a href="https://github.com/ML-GSAI/LLaDA/blob/9182493720ed723ef8031210d85959364e51cbe0/generate.py">固定版本生成代码</a>；<a href="https://github.com/ML-GSAI/LLaDA/blob/9182493720ed723ef8031210d85959364e51cbe0/eval_illada.sh">作者评测配置</a>。</p>',
             table(result['author_diagnostic']['summary']),
             '<p>每套任务仅一道题，只检验这组生成配置是否能完成样例；不能估计 benchmark 总体准确率或稳定联合收益。</p>'])
+    parts.append('<h2>逐题 prompt、答案与原始生成</h2>')
     for r in rows+author_rows:
         parts.append('<details><summary>'+esc(f"{r['benchmark']} | {r['case_id']} | {r['sampler']} | {r['requested']} | valid={r['format_valid']} | B EM={r['scores']['B']['em']}")+'</summary><h3>Prompt</h3><pre>'+esc(r['prompt'])+'</pre><h3>参考答案</h3><pre>'+esc(json.dumps(by_id[r['case_id']]['answers'],ensure_ascii=False,indent=2))+'</pre><h3>原始生成</h3><pre>'+esc(r['generation']['text'])+'</pre><h3>评分</h3><pre>'+esc(json.dumps({k:r[k] for k in ('final_text','extraction_route','scores')},ensure_ascii=False,indent=2))+'</pre></details>')
     parts.extend(['<h2>运行记录</h2><pre>',esc(json.dumps(result['manifest'],ensure_ascii=False,indent=2)),'</pre>'])
