@@ -178,3 +178,5 @@ Replay the exact masked state before a natural reference and patch residual stat
 ### Benchmark transfer
 
 [MuSiQue and audited StepGame](docs/benchmark_transfer.md) extend calibration to natural-text multihop QA and spatial reasoning. The adapters preserve original questions, audit dependency structure, and compare B / AB / BA / RB. Downloaded cases and results are private; this is an adapted exploratory protocol, not an official benchmark leaderboard run.
+
+The [v2 completion protocol](docs/benchmark_transfer_v2.md) allows reasoning before labeled final answers and compares on-demand 32-token blocks with a small full-canvas control. It freezes final-answer extraction before inference and records actual forward counts and processed token positions alongside paired answer scores.
